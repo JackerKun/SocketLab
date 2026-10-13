@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="SocketLab WebSocket 调试工具用户使用指南">
+  <meta name="theme-color" content="#0a0d12">
+  <title>使用指南 · SocketLab</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/guide.css">
+</head>
+<body>
+  <header class="guide-header">
+    <a class="brand" href="index.html" aria-label="返回 SocketLab">
+      <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span><strong>SocketLab</strong><small>USER GUIDE</small></span>
+    </a>
+    <nav aria-label="页面操作">
+      <a class="text-link" href="README.md">README</a>
+      <a class="primary-link" href="index.html"><span>打开调试台</span><b>→</b></a>
+    </nav>
+  </header>
+
+  <div class="guide-layout">
+    <aside class="toc" aria-label="目录">
+      <div class="toc-heading"><span>DOCUMENTATION</span><strong>使用指南</strong></div>
+      <nav>
+        <a class="active" href="#overview"><i>01</i>快速开始</a>
+        <a href="#connection"><i>02</i>连接服务器</a>
+        <a href="#sending"><i>03</i>发送消息</a>
+        <a href="#messages"><i>04</i>查看消息流</a>
+        <a href="#productivity"><i>05</i>模板与统计</a>
+        <a href="#deployment"><i>06</i>部署与 WSS</a>
+        <a href="#shortcuts"><i>07</i>快捷键</a>
+        <a href="#troubleshooting"><i>08</i>故障排查</a>
+      </nav>
+      <div class="toc-help">
+        <span>需要马上测试？</span>
+        <a href="index.html">进入 SocketLab <b>↗</b></a>
+      </div>
+    </aside>
+
+    <main class="guide-content">
+      <section class="hero" id="overview">
+        <div class="hero-copy">
+          <span class="eyebrow">SOCKETLAB DOCUMENTATION</span>
+          <h1>WebSocket 调试，<br><em>从连接到定位问题。</em></h1>
+          <p>这份指南帮助你快速连接服务、发送不同格式的消息、分析数据流，并正确处理 GitHub Pages 与 WSS 部署问题。</p>
+          <div class="hero-actions">
+            <a class="primary-link large" href="index.html">开始调试 <b>→</b></a>
+            <a class="secondary-link" href="#deployment">查看 WSS 部署说明</a>
+          </div>
+        </div>
+        <div class="connection-demo" aria-label="连接流程示意图">
+          <div class="demo-top"><span>CONNECTION FLOW</span><i></i></div>
+          <div class="flow-node browser"><span>1</span><div><small>浏览器</small><strong>SocketLab</strong></div></div>
+          <div class="flow-line"><i></i><em>WSS / TLS</em></div>
+          <div class="flow-node server"><span>2</span><div><small>目标服务</small><strong>WebSocket Server</strong></div></div>
+          <div class="demo-status"><i></i><span>数据只在浏览器与目标服务器间传输</span></div>
+        </div>
+      </section>
+
+      <section class="doc-section quick-start">
+        <div class="section-intro"><span class="section-number">01</span><div><h2>三步开始调试</h2><p>无需安装插件，也不需要后端服务。</p></div></div>
+        <div class="steps">
+          <article><span>01</span><div class="step-icon">⌁</div><h3>输入地址</h3><p>填写完整的 <code>ws://</code> 或 <code>wss://</code> 服务地址。</p></article>
+          <article><span>02</span><div class="step-icon">↔</div><h3>建立连接</h3><p>按需配置子协议、超时和自动重连，然后点击建立连接。</p></article>
+          <article><span>03</span><div class="step-icon">↑</div><h3>发送消息</h3><p>选择 Text、JSON、Hex 或 Base64，输入载荷后发送。</p></article>
+        </div>
+        <div class="callout success"><span>✓</span><div><strong>快速体验</strong><p>默认 Echo 服务会原样返回消息，可直接用于验证发送、接收和延迟测试。</p></div></div>
+      </section>
+
+      <section class="doc-section" id="connection">
+        <div class="section-intro"><span class="section-number">02</span><div><h2>连接服务器</h2><p>先确定页面环境，再选择 WS 或 WSS。</p></div></div>
+        <div class="feature-split">
+          <div>
+            <h3>基础连接</h3>
+            <ol class="instruction-list">
+              <li><span>1</span><div><strong>输入服务地址</strong><p>例如 <code>wss://example.com/socket?token=abc</code>。省略协议时会自动补充 <code>ws://</code>。</p></div></li>
+              <li><span>2</span><div><strong>检查页面协议</strong><p>HTTPS 页面必须连接 <code>wss://</code>，否则浏览器会阻止请求。</p></div></li>
+              <li><span>3</span><div><strong>点击建立连接</strong><p>状态变为 <code>OPEN</code> 后，消息发送功能会自动启用。</p></div></li>
+            </ol>
+          </div>
+          <div class="mock-panel">
+            <div class="mock-label">服务器地址</div>
+            <div class="mock-input"><span>WSS</span><code>wss://example.com/socket</code></div>
+            <button type="button"><i></i>建立连接</button>
+            <div class="mock-facts"><span>状态<strong>OPEN</strong></span><span>协议<strong>默认</strong></span><span>在线时长<strong>00:12:36</strong></span></div>
+          </div>
+        </div>
+        <h3 class="subheading">高级连接设置</h3>
+        <div class="definition-grid">
+          <article><strong>子协议</strong><p>多个值使用英文逗号分隔，例如 <code>graphql-ws, chat</code>。</p></article>
+          <article><strong>连接超时</strong><p>超过指定毫秒数仍未建立连接时，主动结束本次尝试。</p></article>
+          <article><strong>二进制类型</strong><p>选择以 <code>ArrayBuffer</code> 或 <code>Blob</code> 接收二进制消息。</p></article>
+          <article><strong>断线重连</strong><p>连接异常结束后使用指数退避重试，最长等待 30 秒。</p></article>
+        </div>
+        <div class="callout warning"><span>!</span><div><strong>浏览器不能设置自定义握手 Header</strong><p>Token 鉴权请使用 Cookie、URL 参数或 WebSocket 子协议。URL 中不要放置长期有效的敏感 Token。</p></div></div>
+      </section>
+
+      <section class="doc-section" id="sending">
+        <div class="section-intro"><span class="section-number">03</span><div><h2>发送消息</h2><p>根据协议选择正确的载荷格式。</p></div></div>
+        <div class="format-table" role="table" aria-label="发送格式说明">
+          <div class="format-row header" role="row"><span>模式</span><span>输入示例</span><span>实际发送</span></div>
+          <div class="format-row" role="row"><strong>Text</strong><code>hello world</code><span>UTF-8 文本</span></div>
+          <div class="format-row" role="row"><strong>JSON</strong><code>{"type":"ping"}</code><span>压缩后的 JSON 文本</span></div>
+          <div class="format-row" role="row"><strong>Hex</strong><code>48 65 6c 6c 6f</code><span>Uint8Array 二进制</span></div>
+          <div class="format-row" role="row"><strong>Base64</strong><code>SGVsbG8=</code><span>解码后的二进制</span></div>
+          <div class="format-row" role="row"><strong>附件</strong><code>选择本地文件</code><span>文件 ArrayBuffer</span></div>
+        </div>
+        <div class="two-col-cards">
+          <article><div class="card-icon">{ }</div><div><h3>JSON 工具</h3><p>“格式化”增加缩进方便阅读，“压缩”移除空格并验证 JSON 是否有效。</p></div></article>
+          <article><div class="card-icon">◷</div><div><h3>定时发送</h3><p>设置间隔和发送次数；次数为 0 时持续发送，断开连接后自动停止。</p></div></article>
+          <article><div class="card-icon">↔</div><div><h3>延迟测试</h3><p>发送唯一文本并等待相同内容回显，仅适用于 Echo 或实现了回显的服务。</p></div></article>
+          <article><div class="card-icon">⇧</div><div><h3>发送文件</h3><p>文件通过 ArrayBuffer 发送，发送前请确认服务端支持对应的二进制协议。</p></div></article>
+        </div>
+      </section>
+
+      <section class="doc-section" id="messages">
+        <div class="section-intro"><span class="section-number">04</span><div><h2>查看消息流</h2><p>大量消息也只在消息框内部滚动，发送按钮始终保持可见。</p></div></div>
+        <div class="message-demo">
+          <div class="message-toolbar"><div><b>全部</b><span>接收</span><span>发送</span><span>系统</span></div><div><span>新消息</span><strong>默认折叠⌄</strong></div></div>
+          <div class="demo-message collapsed"><i>↓</i><strong>收到</strong><time>14:32:18</time><small>JSON · 649 B</small><code>{ "event": "order.updated", "data": { … } }</code><em>展开</em></div>
+          <div class="demo-message"><i>↑</i><strong>发送</strong><time>14:32:21</time><small>JSON · 45 B</small><pre><span>{</span>  <b>"event"</b>: <q>"hello"</q>,
+  <b>"data"</b>: <q>"SocketLab"</q>
+<span>}</span></pre><em>收起</em></div>
+        </div>
+        <div class="definition-grid message-features">
+          <article><strong>默认折叠</strong><p>新消息默认单行显示，可在顶部改为默认展开；设置会自动保存。</p></article>
+          <article><strong>独立展开</strong><p>点击“展开/收起”，或双击消息标题区域切换显示状态。</p></article>
+          <article><strong>筛选与搜索</strong><p>按接收、发送、系统方向筛选，或直接搜索消息内容。</p></article>
+          <article><strong>JSON 高亮</strong><p>合法 JSON 自动格式化，并区分键名、字符串、数字和布尔值。</p></article>
+          <article><strong>暂停记录</strong><p>暂停后仍保持连接，但新消息不会加入页面记录。</p></article>
+          <article><strong>会话导出</strong><p>把连接信息、统计和消息导出为 JSON，以便复现和共享。</p></article>
+        </div>
+      </section>
+
+      <section class="doc-section" id="productivity">
+        <div class="section-intro"><span class="section-number">05</span><div><h2>模板、统计与本地数据</h2><p>减少重复输入，快速复现调试过程。</p></div></div>
+        <div class="three-col-cards">
+          <article><span>01</span><h3>消息模板</h3><p>保存常用载荷，之后从模板页面一键加载到发送区。</p></article>
+          <article><span>02</span><h3>会话统计</h3><p>查看收发数量、流量、消息速率、连接信息和最近延迟。</p></article>
+          <article><span>03</span><h3>导入会话</h3><p>导入之前导出的 JSON 文件，在消息流中重新查看记录。</p></article>
+        </div>
+        <div class="callout neutral"><span>i</span><div><strong>隐私说明</strong><p>模板、偏好和最近地址保存在浏览器 localStorage；消息保存在当前页面内存，除非你主动导出。SocketLab 没有后端上传接口。</p></div></div>
+      </section>
+
+      <section class="doc-section deployment" id="deployment">
+        <div class="section-intro"><span class="section-number">06</span><div><h2>部署与 WSS</h2><p>GitHub Pages 用户最容易遇到的问题。</p></div></div>
+        <div class="error-card"><div class="error-title"><i></i><span>BLOCKED · MIXED CONTENT</span></div><code>The page at https://... requested insecure content from<br>ws://192.168.1.140:5010/. This content was blocked.</code></div>
+        <p class="lead">HTTPS 页面不能连接明文 <code>ws://</code>。GitHub Pages 默认使用 HTTPS，因此目标服务必须提供 <code>wss://</code>，或改为通过局域网 HTTP 页面使用 SocketLab。</p>
+        <div class="protocol-grid">
+          <article class="ok"><span>✓</span><code>http:// 页面</code><i>→</i><code>ws:// 服务</code><strong>可连接</strong></article>
+          <article class="ok"><span>✓</span><code>https:// 页面</code><i>→</i><code>wss:// 服务</code><strong>推荐</strong></article>
+          <article class="bad"><span>×</span><code>https:// 页面</code><i>→</i><code>ws:// 服务</code><strong>浏览器阻止</strong></article>
+        </div>
+        <h3 class="subheading">推荐：通过 Caddy 提供 WSS</h3>
+        <div class="code-block"><header><span>Caddyfile</span><button type="button" data-copy="ws.example.com {\n    reverse_proxy 127.0.0.1:5010\n}">复制</button></header><pre><b>ws.example.com</b> {
+    reverse_proxy <q>127.0.0.1:5010</q>
+}</pre></div>
+        <p>然后在 SocketLab 中使用 <code>wss://ws.example.com/?token=1</code>。如果目标是私有 IP，可在局域网通过 HTTP 打开 SocketLab，或使用内部 CA，并让每台客户端信任根证书。</p>
+        <div class="callout warning"><span>!</span><div><strong>仅修改 ws 为 wss 无法解决问题</strong><p>服务端或反向代理必须真正启用 TLS，并提供与访问域名匹配、受浏览器信任的证书。完整 Caddy、Nginx 和局域网方案请查看 <a href="README.md#部署">README 部署章节</a>。</p></div></div>
+      </section>
+
+      <section class="doc-section" id="shortcuts">
+        <div class="section-intro"><span class="section-number">07</span><div><h2>快捷键</h2><p>保持手在键盘上，减少重复操作。</p></div></div>
+        <div class="shortcut-grid">
+          <article><span>发送当前消息</span><div><kbd>Ctrl</kbd><i>/</i><kbd>⌘</kbd><b>+</b><kbd>Enter</kbd></div></article>
+          <article><span>聚焦服务器地址</span><div><kbd>Ctrl</kbd><i>/</i><kbd>⌘</kbd><b>+</b><kbd>K</kbd></div></article>
+          <article><span>聚焦消息搜索</span><div><kbd>Ctrl</kbd><i>/</i><kbd>⌘</kbd><b>+</b><kbd>F</kbd></div></article>
+          <article><span>断开当前连接</span><div><kbd>Esc</kbd></div></article>
+          <article><span>调整发送区高度</span><div><kbd>↑</kbd><i>/</i><kbd>↓</kbd></div></article>
+          <article><span>折叠或展开消息</span><div><kbd>双击标题</kbd></div></article>
+        </div>
+      </section>
+
+      <section class="doc-section" id="troubleshooting">
+        <div class="section-intro"><span class="section-number">08</span><div><h2>常见故障排查</h2><p>从浏览器、代理和服务端三端同时确认。</p></div></div>
+        <div class="faq-list">
+          <details open><summary><span>为什么一直显示 CONNECTING？</span><i>+</i></summary><p>检查地址和端口是否可达、服务端是否监听、证书是否有效，以及 HTTPS 页面是否错误连接了 <code>ws://</code>。浏览器 WebSocket 错误信息较少，应同时查看开发者工具和服务端日志。</p></details>
+          <details><summary><span>为什么连接后立即出现 1006？</span><i>+</i></summary><p><code>1006</code> 表示异常断开，常见原因包括 TLS 握手失败、代理没有正确转发 Upgrade、服务端异常或网络中断。</p></details>
+          <details><summary><span>为什么 Nginx 返回 400 或 502？</span><i>+</i></summary><p><code>400</code> 常见于 Upgrade Header 没有转发；<code>502</code> 表示代理无法连接后端，请检查 proxy_pass、监听地址、容器网络和防火墙。</p></details>
+          <details><summary><span>为什么过一段时间自动断开？</span><i>+</i></summary><p>代理可能设置了空闲超时。增加 Nginx 的 <code>proxy_read_timeout</code>，并让服务端定期发送 WebSocket Ping 或业务心跳。</p></details>
+          <details><summary><span>为什么不能添加 Authorization Header？</span><i>+</i></summary><p>浏览器原生 WebSocket API 不允许自定义握手 Header。请改用 HttpOnly Cookie、短期 URL Token 或 WebSocket 子协议。</p></details>
+        </div>
+      </section>
+
+      <section class="guide-cta">
+        <span class="eyebrow">READY TO DEBUG?</span>
+        <h2>现在开始一次 WebSocket 会话</h2>
+        <p>所有消息都在你的浏览器中处理，不经过 SocketLab 服务器。</p>
+        <a class="primary-link large" href="index.html">打开 SocketLab <b>→</b></a>
+      </section>
+    </main>
+  </div>
+
+  <footer class="guide-footer"><span>SocketLab 2.0</span><span>WebSocket debugging workbench</span><a href="index.html">返回调试台</a></footer>
+
+  <script>
+    document.querySelectorAll('[data-copy]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(button.dataset.copy);
+          const previous = button.textContent;
+          button.textContent = '已复制';
+          setTimeout(() => { button.textContent = previous; }, 1500);
+        } catch { button.textContent = '复制失败'; }
+      });
+    });
+
+    const links = [...document.querySelectorAll('.toc nav a')];
+    const sections = links.map((link) => document.querySelector(link.hash)).filter(Boolean);
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+      if (!visible) return;
+      links.forEach((link) => link.classList.toggle('active', link.hash === `#${visible.target.id}`));
+    }, { rootMargin: '-18% 0px -68% 0px', threshold: [0, .1, .5] });
+    sections.forEach((section) => observer.observe(section));
+  </script>
+</body>
+</html>

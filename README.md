@@ -4,6 +4,8 @@ SocketLab 是一个纯前端、零依赖的 WebSocket 调试工作台，面向�
 
 ![SocketLab](https://img.shields.io/badge/WebSocket-Workbench-55e6a5?style=flat-square) ![JavaScript](https://img.shields.io/badge/JavaScript-ES_Modules-f7df1e?style=flat-square) ![Dependencies](https://img.shields.io/badge/dependencies-0-61a9ff?style=flat-square)
 
+在线使用时可从工具底部进入 [`guide.html`](guide.html) 用户指南，查看连接、消息收发、WSS 部署和故障排查说明。
+
 ## 功能
 
 ### 连接管理
@@ -119,7 +121,8 @@ python3 -m http.server 4173
 ├── assets/
 │   └── favicon.svg          # 应用图标
 ├── css/
-│   └── styles.css           # 设计系统、布局与响应式样式
+│   ├── guide.css            # 用户指南页面样式
+│   └── styles.css           # 调试工作台设计系统与响应式样式
 ├── js/
 │   ├── app.js               # UI 状态、消息流与业务编排
 │   ├── store.js             # 本地持久化和默认设置
@@ -128,6 +131,7 @@ python3 -m http.server 4173
 ├── test/
 │   └── utils.test.js        # 核心工具函数测试
 ├── index.html               # 应用页面结构
+├── guide.html               # 响应式用户使用指南
 ├── manifest.webmanifest     # PWA 元数据
 ├── sw.js                    # 离线资源缓存
 └── package.json             # 本地开发与检查脚本
@@ -157,9 +161,187 @@ npm run dev
 
 ## 部署
 
-这是静态网站，可直接部署到 Nginx、GitHub Pages、Cloudflare Pages、Vercel 或任意对象存储。生产环境建议使用 HTTPS，以便 Service Worker、剪贴板等能力稳定工作。
+SocketLab 是纯静态网站，可部署到 GitHub Pages、Nginx、Cloudflare Pages、Vercel 或任意对象存储。生产环境建议通过 HTTPS 提供页面，以便 Service Worker、剪贴板等浏览器能力稳定工作。
 
-Nginx 最小配置示例：
+### GitHub Pages
+
+将仓库发布到 GitHub Pages 后，页面地址通常类似：
+
+```text
+https://<username>.github.io/SocketLab/
+```
+
+GitHub Pages 会通过 HTTPS 提供 `github.io` 页面。此时 SocketLab 只能连接使用有效 TLS 证书的 `wss://` 服务，不能连接普通的 `ws://` 服务。
+
+### HTTPS 页面连接 `ws://` 被阻止
+
+如果控制台出现下面的错误：
+
+```text
+[blocked] The page at https://<username>.github.io/SocketLab/
+requested insecure content from ws://192.168.1.140:5010/.
+This content was blocked and must be served over HTTPS.
+```
+
+这是浏览器的 **Mixed Content（混合内容）安全策略**，不是 SocketLab 的程序错误。连接规则如下：
+
+| SocketLab 页面 | WebSocket 服务 | 结果 |
+| --- | --- | --- |
+| `http://` | `ws://` | 可以连接，适合本地开发 |
+| `http://` | `wss://` | 可以连接 |
+| `https://` | `wss://` | 可以连接，推荐生产环境使用 |
+| `https://` | `ws://` | 浏览器阻止 |
+
+前端 JavaScript 无法关闭这项检查。仅把地址文字从 `ws://` 改成 `wss://` 也不够：WebSocket 服务端或它前面的反向代理必须真正配置 TLS，并提供浏览器信任的证书。
+
+参考资料：
+
+- [MDN：编写 WebSocket 客户端应用](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_client_applications)
+- [MDN：Mixed Content](https://developer.mozilla.org/en-US/docs/Web/Security/Defenses/Mixed_content)
+- [GitHub Pages：使用 HTTPS 保护站点](https://docs.github.com/en/pages/getting-started-with-github-pages/securing-your-github-pages-site-with-https)
+
+### 方案一：使用 Caddy 提供 WSS（推荐）
+
+假设原始服务运行在：
+
+```text
+ws://127.0.0.1:5010
+```
+
+准备一个域名，例如 `ws.example.com`，将域名解析到代理服务器，并创建 `Caddyfile`：
+
+```caddyfile
+ws.example.com {
+    reverse_proxy 127.0.0.1:5010
+}
+```
+
+启动 Caddy 后，它会自动申请和续期 HTTPS 证书，并自动处理 WebSocket Upgrade。SocketLab 中连接：
+
+```text
+wss://ws.example.com/?token=1
+```
+
+申请公共证书时，服务器通常需要能从公网访问 `80` 和 `443` 端口。详细说明参见 [Caddy Automatic HTTPS](https://caddyserver.com/docs/automatic-https) 和 [Caddy reverse_proxy](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy)。
+
+### 方案二：使用 Nginx 提供 WSS
+
+WebSocket 应用仍监听本机 `5010`，由 Nginx 在 `443` 端口终止 TLS：
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name ws.example.com;
+
+    ssl_certificate     /path/to/fullchain.pem;
+    ssl_certificate_key /path/to/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:5010;
+        proxy_http_version 1.1;
+
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+
+        # 长连接需要根据业务适当增加超时时间
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+    }
+}
+```
+
+然后连接：
+
+```text
+wss://ws.example.com/?token=1
+```
+
+`Upgrade` 和 `Connection` Header 必须显式转发，参见 [Nginx WebSocket proxying](https://nginx.org/en/docs/http/websocket.html)。
+
+### 局域网服务和私有 IP
+
+`192.168.x.x`、`10.x.x.x` 和 `172.16.x.x` 等私有 IP 通常无法直接获得公共 CA 签发的证书。可选择以下方式：
+
+#### A. 仅在局域网通过 HTTP 使用 SocketLab
+
+在一台局域网电脑上启动：
+
+```bash
+npm run dev
+```
+
+其他设备通过该电脑的局域网地址访问：
+
+```text
+http://192.168.1.100:4173
+```
+
+然后可以连接：
+
+```text
+ws://192.168.1.140:5010/?token=1
+```
+
+该方式最适合临时开发调试。请确认防火墙允许访问 `4173` 和 WebSocket 服务端口。
+
+#### B. 使用内部 CA 或自签名证书
+
+Caddy 可以为私有 IP 生成内部证书：
+
+```caddyfile
+https://192.168.1.140 {
+    tls internal
+    reverse_proxy 127.0.0.1:5010
+}
+```
+
+然后连接：
+
+```text
+wss://192.168.1.140/?token=1
+```
+
+每一台访问设备都必须安装并信任该内部 CA 的根证书，否则浏览器仍会因为证书不受信任而拒绝 WSS。手机也需要单独安装并信任证书。
+
+#### C. 使用局域网域名和可信证书
+
+可以使用类似 `ws.example.com` 的真实域名，通过局域网 DNS 将它解析到 `192.168.1.140`，并使用 DNS Challenge 申请证书。浏览器访问的主机名必须与证书中的域名一致。
+
+### 使用安全隧道
+
+如果需要从公网连接局域网服务，可以使用 Cloudflare Tunnel、VPN 或一台带公网 HTTPS 的反向代理服务器，将本地服务发布为：
+
+```text
+wss://socket.example.com
+```
+
+不要把没有鉴权的 WebSocket 服务直接暴露到公网。至少应增加身份验证、访问控制、速率限制和日志审计。
+
+### 常见部署故障
+
+| 现象 | 常见原因 | 处理方式 |
+| --- | --- | --- |
+| `requested insecure content from ws://...` | HTTPS 页面连接了明文 WS | 给服务配置 TLS 并使用 `wss://`，或在局域网通过 HTTP 打开 SocketLab |
+| `ERR_CERT_AUTHORITY_INVALID` | 自签名或内部 CA 未受信任 | 在客户端安装根证书，或改用公共可信证书 |
+| `ERR_CERT_COMMON_NAME_INVALID` | 连接地址与证书域名/IP 不匹配 | 使用证书包含的域名，重新签发带正确 SAN 的证书 |
+| 关闭码 `1006` | TLS、代理、网络或服务端异常中断 | 查看浏览器控制台、代理日志和服务端日志 |
+| Nginx 返回 `400` 或无法升级 | Upgrade Header 未转发 | 配置 `proxy_http_version`、`Upgrade` 和 `Connection` |
+| 反向代理返回 `502` | 代理无法访问后端服务 | 检查 `proxy_pass` 地址、监听端口、防火墙和容器网络 |
+| 连接一段时间后自动断开 | 代理空闲超时 | 增加代理读取超时，服务端定期发送 Ping/心跳 |
+| 服务端拒绝连接 | `Origin`、Token 或子协议不符合要求 | 检查服务端鉴权、Origin 白名单和子协议配置 |
+
+### 部署安全建议
+
+- URL 查询参数可能出现在代理日志、浏览器历史或截图中。不要使用长期有效的敏感 Token。
+- 优先使用短期 Token、HttpOnly Cookie 或经过设计的 WebSocket 子协议进行鉴权。
+- 使用 `wss://` 只负责传输加密，不等于已经完成身份验证和权限控制。
+- 公网服务应限制消息大小、连接数量和发送频率。
+- 不建议通过关闭浏览器安全检查或允许 Mixed Content 的方式解决部署问题。
+
+### 仅部署 SocketLab 静态页面到 Nginx
+
+如果 Nginx 只负责托管 SocketLab 页面，最小配置如下：
 
 ```nginx
 server {
@@ -174,7 +356,7 @@ server {
 }
 ```
 
-若 WebSocket 服务也通过 Nginx 代理，需要为服务路径配置 Upgrade Header；这属于目标 WebSocket 服务的反向代理配置，与 SocketLab 静态站点本身无关。
+静态页面服务器和目标 WebSocket 服务器可以是不同的机器。真正决定能否连接的是浏览器最终使用的 `ws://` / `wss://` 地址、证书信任状态以及网络可达性。
 
 ## 隐私
 
