@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="SocketLab — 专业、开源、跨设备的 WebSocket 在线调试工具">
+  <meta name="theme-color" content="#0a0d12">
+  <title>SocketLab · WebSocket 调试工作台</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="SocketLab 首页">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span><strong>SocketLab</strong><small>WebSocket workbench</small></span>
+      </a>
+      <div class="topbar-actions">
+        <span class="connection-chip" id="connectionChip"><i></i><span>未连接</span></span>
+        <button class="icon-button" id="shortcutsButton" title="快捷键" aria-label="查看快捷键">⌨</button>
+        <button class="icon-button" id="themeButton" title="切换主题" aria-label="切换深浅主题">☼</button>
+        <a class="icon-button github-link" href="https://jackerkun.com/" target="_blank" rel="noreferrer" title="作者主页" aria-label="作者主页">↗</a>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <aside class="sidebar panel" aria-label="连接设置">
+        <div class="panel-heading">
+          <div><span class="eyebrow">CONNECTION</span><h1>连接配置</h1></div>
+          <button class="ghost-button compact" id="resetButton" title="恢复默认设置">重置</button>
+        </div>
+
+        <label class="field-label" for="urlInput">服务器地址</label>
+        <div class="url-field">
+          <span id="schemeLabel">WSS</span>
+          <input id="urlInput" list="recentUrls" type="url" spellcheck="false" autocomplete="off" placeholder="wss://example.com/socket">
+          <datalist id="recentUrls"></datalist>
+        </div>
+        <div class="button-row connection-actions">
+          <button class="primary-button" id="connectButton"><span class="button-led"></span><span>建立连接</span></button>
+          <button class="secondary-button" id="disconnectButton" disabled>断开</button>
+        </div>
+
+        <div class="connection-facts" aria-live="polite">
+          <div><span>状态</span><strong id="statusText">IDLE</strong></div>
+          <div><span>协议</span><strong id="protocolText">—</strong></div>
+          <div><span>在线时长</span><strong id="uptimeText">00:00:00</strong></div>
+        </div>
+
+        <details class="settings-block">
+          <summary>高级连接设置 <span>⌄</span></summary>
+          <div class="settings-content">
+            <label class="field-label" for="protocolsInput">子协议 <em>逗号分隔</em></label>
+            <input class="text-input" id="protocolsInput" spellcheck="false" placeholder="graphql-ws, chat">
+            <div class="two-columns">
+              <label><span class="field-label">连接超时 <em>ms</em></span><input class="text-input" id="timeoutInput" type="number" min="1000" step="500"></label>
+              <label><span class="field-label">二进制类型</span><select class="text-input" id="binaryTypeSelect"><option value="arraybuffer">ArrayBuffer</option><option value="blob">Blob</option></select></label>
+            </div>
+            <label class="switch-row"><span><strong>断线重连</strong><small>指数退避，最长 30 秒</small></span><input id="reconnectInput" type="checkbox"><i></i></label>
+            <div class="two-columns" id="reconnectFields">
+              <label><span class="field-label">初始间隔 <em>ms</em></span><input class="text-input" id="reconnectDelayInput" type="number" min="250" step="250"></label>
+              <label><span class="field-label">最多次数</span><input class="text-input" id="reconnectLimitInput" type="number" min="0" max="50"></label>
+            </div>
+          </div>
+        </details>
+
+        <div class="notice-card">
+          <span class="notice-icon">i</span>
+          <p><strong>浏览器安全限制</strong><br>原生 WebSocket 不能设置自定义握手 Header。鉴权请使用 Cookie、URL 参数或子协议。</p>
+        </div>
+
+        <section class="mini-console">
+          <div class="section-title"><span>运行日志</span><button id="clearEventsButton">清空</button></div>
+          <div class="event-list" id="eventList" aria-live="polite"></div>
+        </section>
+      </aside>
+
+      <section class="main-panel panel">
+        <div class="tabs" role="tablist">
+          <button class="tab active" data-tab="messages" role="tab">消息流 <span id="messageCountBadge">0</span></button>
+          <button class="tab" data-tab="templates" role="tab">消息模板 <span id="templateCountBadge">0</span></button>
+          <button class="tab" data-tab="stats" role="tab">会话统计</button>
+        </div>
+
+        <div class="tab-panel active" id="messagesPanel">
+          <div class="toolbar">
+            <div class="segmented" id="directionFilter" aria-label="消息方向筛选">
+              <button class="active" data-value="all">全部</button><button data-value="in">接收</button><button data-value="out">发送</button><button data-value="system">系统</button>
+            </div>
+            <div class="toolbar-spacer"></div>
+            <label class="search-field"><span>⌕</span><input id="searchInput" type="search" placeholder="搜索内容…"></label>
+            <label class="message-default-control" title="控制新收到和新发送消息的初始显示状态"><span>新消息</span><select id="defaultMessageStateSelect" aria-label="新消息默认显示状态"><option value="collapsed">默认折叠</option><option value="expanded">默认展开</option></select></label>
+            <button class="icon-button" id="pauseButton" title="暂停记录" aria-label="暂停记录">Ⅱ</button>
+            <button class="icon-button" id="toggleAllMessagesButton" title="全部折叠" aria-label="折叠全部消息">⇵</button>
+            <button class="icon-button" id="exportButton" title="导出会话" aria-label="导出会话">⇩</button>
+            <button class="icon-button danger-hover" id="clearMessagesButton" title="清空消息" aria-label="清空消息">⌫</button>
+          </div>
+
+          <div class="message-list" id="messageList">
+            <div class="empty-state" id="emptyState">
+              <div class="empty-orbit"><i></i><i></i><i></i><span>⌁</span></div>
+              <h2>等待 WebSocket 数据</h2>
+              <p>建立连接后，发送与接收的消息会实时显示在这里。</p>
+              <div><kbd>Ctrl</kbd><b>+</b><kbd>Enter</kbd><span>快速发送</span></div>
+            </div>
+          </div>
+
+          <form class="composer" id="composerForm">
+            <div class="composer-resize-handle" id="composerResizeHandle" role="separator" aria-label="调整发送区高度" aria-orientation="horizontal" tabindex="0"><i></i><span>拖动调整高度</span></div>
+            <div class="composer-topline">
+              <div class="mode-tabs" id="modeTabs">
+                <button type="button" class="active" data-mode="text">Text</button><button type="button" data-mode="json">JSON</button><button type="button" data-mode="hex">Hex</button><button type="button" data-mode="base64">Base64</button>
+              </div>
+              <div class="composer-tools">
+                <button type="button" id="formatButton" title="格式化 JSON">格式化</button>
+                <button type="button" id="minifyButton" title="压缩 JSON">压缩</button>
+                <label class="file-button" title="发送文件">附件<input id="fileInput" type="file"></label>
+              </div>
+            </div>
+            <div class="editor-wrap">
+              <textarea id="composerInput" spellcheck="false" placeholder="输入要发送的消息…"></textarea>
+              <span class="payload-size" id="payloadSize">0 B</span>
+            </div>
+            <div class="composer-footer">
+              <label class="checkbox-label"><input id="autoClearInput" type="checkbox"> 发送后清空</label>
+              <button class="text-button" type="button" id="saveTemplateButton">＋ 保存为模板</button>
+              <div class="toolbar-spacer"></div>
+              <button class="secondary-button compact" type="button" id="pingButton" disabled>延迟测试</button>
+              <button class="secondary-button compact" type="button" id="intervalButton" disabled>定时发送</button>
+              <button class="send-button" id="sendButton" type="submit" disabled><span>发送消息</span><kbd>⌘↵</kbd></button>
+            </div>
+            <div class="interval-bar" id="intervalBar" hidden>
+              <label>间隔 <input id="intervalMsInput" type="number" min="100" step="100"> ms</label>
+              <label>次数 <input id="intervalCountInput" type="number" min="0" max="100000"> <em>0 = 无限</em></label>
+              <span id="intervalStatus">尚未启动</span>
+              <button type="button" class="primary-button compact" id="intervalStartButton">开始</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="tab-panel" id="templatesPanel">
+          <div class="content-header"><div><h2>消息模板</h2><p>保存常用载荷，一键加载到发送区。</p></div><button class="primary-button compact" id="newTemplateButton">＋ 新建模板</button></div>
+          <div class="template-grid" id="templateGrid"></div>
+        </div>
+
+        <div class="tab-panel" id="statsPanel">
+          <div class="content-header"><div><h2>会话统计</h2><p>数据只保存在当前浏览器，不会上传。</p></div><button class="secondary-button compact" id="importButton">导入会话</button><input type="file" id="importInput" accept="application/json" hidden></div>
+          <div class="stats-grid">
+            <article><span>↑</span><div><small>已发送消息</small><strong id="sentCount">0</strong><em id="sentBytes">0 B</em></div></article>
+            <article><span>↓</span><div><small>已接收消息</small><strong id="receivedCount">0</strong><em id="receivedBytes">0 B</em></div></article>
+            <article><span>Σ</span><div><small>总流量</small><strong id="totalBytes">0 B</strong><em id="messageRate">0 条/分钟</em></div></article>
+            <article><span>◷</span><div><small>最近延迟</small><strong id="latencyValue">—</strong><em>回显测量</em></div></article>
+          </div>
+          <div class="session-details">
+            <h3>当前会话</h3>
+            <dl><div><dt>服务器</dt><dd id="sessionUrl">—</dd></div><div><dt>连接时间</dt><dd id="sessionStarted">—</dd></div><div><dt>协商协议</dt><dd id="sessionProtocol">—</dd></div><div><dt>扩展</dt><dd id="sessionExtensions">—</dd></div></dl>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer><span>SocketLab 2.0</span><span>所有数据均在本地处理</span><a href="README.md">使用文档</a></footer>
+  </div>
+
+  <div class="toast-stack" id="toastStack" aria-live="assertive"></div>
+
+  <dialog id="templateDialog">
+    <form method="dialog" id="templateForm">
+      <div class="dialog-heading"><div><span class="eyebrow">TEMPLATE</span><h2>保存消息模板</h2></div><button value="cancel" aria-label="关闭">×</button></div>
+      <label class="field-label" for="templateNameInput">模板名称</label>
+      <input class="text-input" id="templateNameInput" required maxlength="40" placeholder="例如：用户登录">
+      <div class="dialog-actions"><button class="secondary-button" value="cancel">取消</button><button class="primary-button" value="default">保存模板</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="shortcutsDialog">
+    <form method="dialog">
+      <div class="dialog-heading"><div><span class="eyebrow">KEYBOARD</span><h2>快捷键</h2></div><button value="cancel" aria-label="关闭">×</button></div>
+      <div class="shortcut-list"><div><span>发送消息</span><kbd>Ctrl / ⌘ + Enter</kbd></div><div><span>连接服务器</span><kbd>Ctrl / ⌘ + K</kbd></div><div><span>断开连接</span><kbd>Esc</kbd></div><div><span>聚焦搜索</span><kbd>Ctrl / ⌘ + F</kbd></div></div>
+      <div class="dialog-actions"><button class="primary-button" value="default">知道了</button></div>
+    </form>
+  </dialog>
+
+  <template id="messageTemplate">
+    <article class="message-item">
+      <div class="message-meta"><span class="direction-icon"></span><strong class="direction-label"></strong><time></time><span class="kind-badge"></span><span class="message-size"></span><button class="collapse-message" type="button" title="折叠消息" aria-label="折叠消息">收起</button><button class="copy-message" type="button" title="复制消息">复制</button></div>
+      <pre></pre>
+    </article>
+  </template>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

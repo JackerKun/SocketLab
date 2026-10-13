@@ -1,0 +1,12 @@
+{
+  "name": "socketlab",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A dependency-free WebSocket testing workbench for desktop and mobile browsers.",
+  "scripts": {
+    "dev": "python3 -m http.server 4173",
+    "test": "node --test",
+    "check": "node --check js/app.js && node --check js/websocket-client.js && node --check js/store.js && node --check js/utils.js"
+  }
+}
