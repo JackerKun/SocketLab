@@ -27,6 +27,7 @@ const elements = {
   templateGrid: $('#templateGrid'), templateDialog: $('#templateDialog'), templateForm: $('#templateForm'),
   templateDialogTitle: $('#templateDialogTitle'), templateName: $('#templateNameInput'),
   templateMode: $('#templateModeSelect'), templateContent: $('#templateContentInput'),
+  templateSubmit: $('#templateSubmitButton'),
   theme: $('#themeButton'), shortcuts: $('#shortcutsDialog'),
 };
 
@@ -40,6 +41,7 @@ let intervalSent = 0;
 let sessionStartedAt = null;
 let uptimeTimer = null;
 let pendingPing = null;
+let editingTemplateId = null;
 let stats = freshStats();
 
 function freshStats() {
@@ -562,12 +564,15 @@ function selectTab(name) {
   $$('.tab-panel').forEach((panel) => panel.classList.toggle('active', panel.id === `${name}Panel`));
 }
 
-function openTemplateDialog(source) {
-  elements.templateName.value = '';
+function openTemplateDialog(source, template = null) {
   const fromComposer = source === 'composer';
-  elements.templateDialogTitle.textContent = fromComposer ? '保存消息模板' : '新建消息模板';
-  elements.templateMode.value = fromComposer ? settings.composerMode : 'json';
-  elements.templateContent.value = fromComposer ? elements.composer.value : '';
+  const isEditing = source === 'edit' && template;
+  editingTemplateId = isEditing ? template.id : null;
+  elements.templateDialogTitle.textContent = isEditing ? '编辑消息模板' : fromComposer ? '保存消息模板' : '新建消息模板';
+  elements.templateSubmit.textContent = isEditing ? '保存修改' : '保存模板';
+  elements.templateName.value = isEditing ? template.name : '';
+  elements.templateMode.value = isEditing ? template.mode : fromComposer ? settings.composerMode : 'json';
+  elements.templateContent.value = isEditing ? template.content : fromComposer ? elements.composer.value : '';
   updateTemplateContentPlaceholder();
   elements.templateDialog.showModal();
   setTimeout(() => elements.templateName.focus(), 20);
@@ -593,11 +598,19 @@ function saveTemplate(event) {
     elements.templateContent.focus();
     return;
   }
-  settings.templates.unshift({ id: uid(), name, mode, content });
+  const isEditing = editingTemplateId !== null;
+  if (isEditing) {
+    settings.templates = settings.templates.map((template) => (
+      template.id === editingTemplateId ? { ...template, name, mode, content } : template
+    ));
+  } else {
+    settings.templates.unshift({ id: uid(), name, mode, content });
+  }
   saveSettings(settings);
   renderTemplates();
   elements.templateDialog.close();
-  toast('模板已保存');
+  editingTemplateId = null;
+  toast(isEditing ? '模板已更新' : '模板已保存');
 }
 
 function renderTemplates() {
@@ -612,15 +625,17 @@ function renderTemplates() {
     const content = document.createElement('pre'); content.textContent = template.content;
     const footer = document.createElement('footer');
     const remove = document.createElement('button'); remove.className = 'secondary-button danger-hover'; remove.textContent = '删除';
+    const edit = document.createElement('button'); edit.className = 'secondary-button'; edit.textContent = '编辑';
     const load = document.createElement('button'); load.className = 'primary-button'; load.textContent = '加载';
     remove.addEventListener('click', () => {
       settings.templates = settings.templates.filter((item) => item.id !== template.id);
       saveSettings(settings); renderTemplates(); toast('模板已删除');
     });
+    edit.addEventListener('click', () => openTemplateDialog('edit', template));
     load.addEventListener('click', () => {
       elements.composer.value = template.content; setComposerMode(template.mode); updatePayloadSize(); selectTab('messages'); collectSettings(); toast(`已加载「${template.name}」`);
     });
-    footer.append(remove, load); card.append(header, content, footer); return card;
+    footer.append(remove, edit, load); card.append(header, content, footer); return card;
   }));
   elements.templateCount.textContent = settings.templates.length;
 }
