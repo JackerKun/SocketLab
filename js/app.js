@@ -25,7 +25,9 @@ const elements = {
   intervalStart: $('#intervalStartButton'), intervalStatus: $('#intervalStatus'), file: $('#fileInput'),
   composerResizeHandle: $('#composerResizeHandle'), toggleAllMessages: $('#toggleAllMessagesButton'),
   templateGrid: $('#templateGrid'), templateDialog: $('#templateDialog'), templateForm: $('#templateForm'),
-  templateName: $('#templateNameInput'), theme: $('#themeButton'), shortcuts: $('#shortcutsDialog'),
+  templateDialogTitle: $('#templateDialogTitle'), templateName: $('#templateNameInput'),
+  templateMode: $('#templateModeSelect'), templateContent: $('#templateContentInput'),
+  theme: $('#themeButton'), shortcuts: $('#shortcutsDialog'),
 };
 
 let settings = loadSettings();
@@ -135,8 +137,12 @@ function bindUi() {
   elements.interval.addEventListener('click', () => { elements.intervalBar.hidden = !elements.intervalBar.hidden; });
   elements.intervalStart.addEventListener('click', toggleInterval);
   [elements.intervalMs, elements.intervalCount].forEach((element) => element.addEventListener('change', collectSettings));
-  $('#saveTemplateButton').addEventListener('click', openTemplateDialog);
-  $('#newTemplateButton').addEventListener('click', openTemplateDialog);
+  $('#saveTemplateButton').addEventListener('click', () => openTemplateDialog('composer'));
+  $('#newTemplateButton').addEventListener('click', () => openTemplateDialog('new'));
+  elements.templateMode.addEventListener('change', updateTemplateContentPlaceholder);
+  $$('[data-dialog-close]', elements.templateDialog).forEach((button) => {
+    button.addEventListener('click', () => elements.templateDialog.close('cancel'));
+  });
   elements.templateForm.addEventListener('submit', saveTemplate);
   $('#importButton').addEventListener('click', () => $('#importInput').click());
   $('#importInput').addEventListener('change', importSession);
@@ -556,17 +562,38 @@ function selectTab(name) {
   $$('.tab-panel').forEach((panel) => panel.classList.toggle('active', panel.id === `${name}Panel`));
 }
 
-function openTemplateDialog() {
+function openTemplateDialog(source) {
   elements.templateName.value = '';
+  const fromComposer = source === 'composer';
+  elements.templateDialogTitle.textContent = fromComposer ? '保存消息模板' : '新建消息模板';
+  elements.templateMode.value = fromComposer ? settings.composerMode : 'json';
+  elements.templateContent.value = fromComposer ? elements.composer.value : '';
+  updateTemplateContentPlaceholder();
   elements.templateDialog.showModal();
   setTimeout(() => elements.templateName.focus(), 20);
+}
+
+function updateTemplateContentPlaceholder() {
+  elements.templateContent.placeholder = {
+    text: '输入模板文本…',
+    json: '输入合法的 JSON…',
+    hex: '例如：48 65 6c 6c 6f',
+    base64: '输入 Base64 编码内容…',
+  }[elements.templateMode.value];
 }
 
 function saveTemplate(event) {
   event.preventDefault();
   const name = elements.templateName.value.trim();
-  if (!name) return;
-  settings.templates.unshift({ id: uid(), name, mode: settings.composerMode, content: elements.composer.value });
+  const mode = elements.templateMode.value;
+  const content = elements.templateContent.value;
+  if (!name || !content.trim()) return;
+  if (mode === 'json' && !isJson(content)) {
+    toast('模板内容不是有效 JSON', 'error');
+    elements.templateContent.focus();
+    return;
+  }
+  settings.templates.unshift({ id: uid(), name, mode, content });
   saveSettings(settings);
   renderTemplates();
   elements.templateDialog.close();

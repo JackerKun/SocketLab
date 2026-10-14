@@ -168,10 +168,19 @@
 
   <dialog id="templateDialog">
     <form method="dialog" id="templateForm">
-      <div class="dialog-heading"><div><span class="eyebrow">TEMPLATE</span><h2>保存消息模板</h2></div><button value="cancel" aria-label="关闭">×</button></div>
+      <div class="dialog-heading"><div><span class="eyebrow">TEMPLATE</span><h2 id="templateDialogTitle">保存消息模板</h2></div><button type="button" data-dialog-close aria-label="关闭">×</button></div>
       <label class="field-label" for="templateNameInput">模板名称</label>
       <input class="text-input" id="templateNameInput" required maxlength="40" placeholder="例如：用户登录">
-      <div class="dialog-actions"><button class="secondary-button" value="cancel">取消</button><button class="primary-button" value="default">保存模板</button></div>
+      <label class="field-label template-field-label" for="templateModeSelect">消息类型</label>
+      <select class="text-input" id="templateModeSelect">
+        <option value="json">JSON</option>
+        <option value="text">Text</option>
+        <option value="hex">Hex</option>
+        <option value="base64">Base64</option>
+      </select>
+      <label class="field-label template-field-label" for="templateContentInput">模板内容</label>
+      <textarea class="template-content-input" id="templateContentInput" required spellcheck="false" placeholder="输入合法的 JSON…"></textarea>
+      <div class="dialog-actions"><button class="secondary-button" type="button" data-dialog-close>取消</button><button class="primary-button" type="submit">保存模板</button></div>
     </form>
   </dialog>
 
